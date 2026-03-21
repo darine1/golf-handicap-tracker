@@ -12,7 +12,7 @@ export default function NewRound() {
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    fetch('http://localhost:8000/courses')
+    fetch(`${import.meta.env.VITE_API_URL}/courses`)
       .then(r => r.json())
       .then(data => {
         setCourses(data)
@@ -50,7 +50,7 @@ export default function NewRound() {
     if (!courseId) { setMessage('Please add a course first'); return }
     if (total === null) { setMessage('Please fill in all 18 holes'); return }
 
-    const res = await fetch('http://localhost:8000/rounds', {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/rounds`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

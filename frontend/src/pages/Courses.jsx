@@ -14,7 +14,7 @@ export default function Courses() {
     }, [])
 
     async function fetchCourses() {
-        const res = await fetch('http://localhost:8000/courses')
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/courses`)
         const data = await res.json()
         setCourses(data)
     }
@@ -25,7 +25,7 @@ export default function Courses() {
             return
         }
 
-        const res = await fetch('http://localhost:8000/courses', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/courses`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

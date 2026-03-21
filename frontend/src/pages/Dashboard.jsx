@@ -8,8 +8,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     Promise.all([
-      fetch('http://localhost:8000/handicap').then(r => r.json()),
-      fetch('http://localhost:8000/rounds').then(r => r.json())
+      fetch(`${import.meta.env.VITE_API_URL}/handicap`).then(r => r.json()),
+      fetch(`${import.meta.env.VITE_API_URL}/rounds`).then(r => r.json())
     ]).then(([handicapData, roundsData]) => {
       setHandicap(handicapData)
       setRounds(roundsData)
