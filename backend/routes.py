@@ -42,6 +42,8 @@ async def get_course_details(external_id: int):
     data = res.json()
     tees = data.get("tees", {}).get("male", [])
     if not tees:
+        tees = data.get("tees", {}).get("female", [])
+    if not tees:
         return {"error": "No tee data found"}
     tee = next((t for t in tees if t["tee_name"].lower() == "white"), tees[0])
     hole_pars = [h["par"] for h in tee.get("holes", [])]

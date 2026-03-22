@@ -9,10 +9,7 @@ app = FastAPI(title="Golf Handicap Tracker")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://golf-handicap-tracker-peach.vercel.app",
-        "http://localhost:5173"
-    ],
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
