@@ -49,10 +49,7 @@ async def get_course_details(external_id: int):
         return {"error": "No tee data found"}
     tee = next((t for t in tees if t["tee_name"].lower() == "white"), tees[0])
     holes = tee.get("holes", [])
-    if len(holes) == 18:
-        hole_pars = [h["par"] for h in holes[9:]] + [h["par"] for h in holes[9:]]
-    else:
-        hole_pars = [h["par"] for h in holes]
+    hole_pars = [h["par"] for h in holes]
     return {
         "external_id": course_data["id"],
         "club_name": course_data["club_name"],
