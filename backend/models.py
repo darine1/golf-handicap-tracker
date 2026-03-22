@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Float, Date, Text, ForeignKey
+from sqlalchemy import Column, String, Integer, Float, Date, Text, ForeignKey, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from database import Base
 import uuid
@@ -11,6 +11,8 @@ class Course(Base):
     course_rating = Column(Float, nullable=False)
     slope_rating = Column(Integer, nullable=False)
     par = Column(Integer, default=72)
+    hole_pars = Column(JSON, nullable=True)
+    external_id = Column(String, nullable=True)
 
 class Round(Base):
     __tablename__ = "rounds"
