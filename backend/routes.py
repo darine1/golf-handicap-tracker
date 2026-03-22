@@ -40,19 +40,20 @@ async def get_course_details(external_id: int):
             headers={"Authorization": f"Key {GOLF_API_KEY}"}
         )
     data = res.json()
-    print("RAW API RESPONSE:", data)
-    tees = data.get("tees", {}).get("male", [])
+    course_data = data.get("course", data)
+    tees_data = course_data.get("tees", {})
+    tees = tees_data.get("male", [])
     if not tees:
-        tees = data.get("tees", {}).get("female", [])
+        tees = tees_data.get("female", [])
     if not tees:
         return {"error": "No tee data found"}
     tee = next((t for t in tees if t["tee_name"].lower() == "white"), tees[0])
     hole_pars = [h["par"] for h in tee.get("holes", [])]
     return {
-        "external_id": data["id"],
-        "club_name": data["club_name"],
-        "course_name": data["course_name"],
-        "location": data.get("location", {}),
+        "external_id": course_data["id"],
+        "club_name": course_data["club_name"],
+        "course_name": course_data["course_name"],
+        "location": course_data.get("location", {}),
         "tee_name": tee["tee_name"],
         "course_rating": tee["course_rating"],
         "slope_rating": tee["slope_rating"],
