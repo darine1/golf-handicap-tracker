@@ -2,8 +2,61 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 import models, schemas, handicap
+import httpx
+import os
 
 router = APIRouter()
+
+GOLF_API_KEY = os.getenv("GOLF_API_KEY")
+GOLF_API_BASE = "https://api.golfcourseapi.com/v1"
+
+# --- Golf API Routes ---
+
+@router.get("/courses/search")
+async def search_courses(q: str):
+    async with httpx.AsyncClient() as client:
+        res = await client.get(
+            f"{GOLF_API_BASE}/search",
+            params={"search_query": q},
+            headers={"Authorization": f"Key {GOLF_API_KEY}"}
+        )
+    data = res.json()
+    courses = data.get("courses", [])
+    return [
+        {
+            "id": c["id"],
+            "club_name": c["club_name"],
+            "course_name": c["course_name"],
+            "location": c.get("location", {})
+        }
+        for c in courses
+    ]
+
+@router.get("/courses/details/{external_id}")
+async def get_course_details(external_id: int):
+    async with httpx.AsyncClient() as client:
+        res = await client.get(
+            f"{GOLF_API_BASE}/courses/{external_id}",
+            headers={"Authorization": f"Key {GOLF_API_KEY}"}
+        )
+    data = res.json()
+    tees = data.get("tees", {}).get("male", [])
+    if not tees:
+        return {"error": "No tee data found"}
+    tee = next((t for t in tees if t["tee_name"].lower() == "white"), tees[0])
+    hole_pars = [h["par"] for h in tee.get("holes", [])]
+    return {
+        "external_id": data["id"],
+        "club_name": data["club_name"],
+        "course_name": data["course_name"],
+        "location": data.get("location", {}),
+        "tee_name": tee["tee_name"],
+        "course_rating": tee["course_rating"],
+        "slope_rating": tee["slope_rating"],
+        "par_total": tee["par_total"],
+        "hole_pars": hole_pars,
+        "available_tees": [t["tee_name"] for t in tees]
+    }
 
 # --- Course Routes ---
 
@@ -23,20 +76,17 @@ def get_courses(db: Session = Depends(get_db)):
 
 @router.post("/rounds")
 def add_round(round_in: schemas.RoundCreate, db: Session = Depends(get_db)):
-    #Make sure the course exists
     course = db.query(models.Course).filter(
         models.Course.id == round_in.course_id
     ).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     
-    #save the round
     db_round = models.Round(**round_in.model_dump())
     db.add(db_round)
     db.commit()
     db.refresh(db_round)
 
-    # Recalculate handicap from all rounds
     all_rounds = db.query(models.Round).all()
     differentials = []
     for r in all_rounds:
@@ -52,7 +102,7 @@ def add_round(round_in: schemas.RoundCreate, db: Session = Depends(get_db)):
         "round_saved": True,
         "score_differential": handicap.calculate_score_differential(
             round_in.gross_score, course.course_rating, course.slope_rating
-         ),
+        ),
         "handicap_index": index,
         "total_rounds": len(all_rounds),
         "rounds_until_handicap": max(0, 3 - len(all_rounds))
