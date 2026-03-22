@@ -8,6 +8,8 @@ class CourseCreate(BaseModel):
     course_rating: float
     slope_rating: int
     par: int = 72
+    hole_pars: list[int] = None
+    external_id: str = None
 
 class CourseOut(BaseModel):
     id: UUID
@@ -19,8 +21,7 @@ class CourseOut(BaseModel):
     hole_pars: list[int] = None
     external_id: str = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 class RoundCreate(BaseModel):
     course_id: UUID
@@ -35,5 +36,4 @@ class RoundOut(BaseModel):
     gross_score: int
     notes: str = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from attributes": True}
