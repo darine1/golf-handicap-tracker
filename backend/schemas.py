@@ -16,6 +16,8 @@ class CourseOut(BaseModel):
     course_rating: float
     slope_rating: int
     par: int
+    hole_pars: list[int] = None
+    external_id: str = None
 
     class Config:
         from_attributes = True
