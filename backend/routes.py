@@ -40,6 +40,7 @@ async def get_course_details(external_id: int):
             headers={"Authorization": f"Key {GOLF_API_KEY}"}
         )
     data = res.json()
+    print("RAW API RESPONSE:", data)
     tees = data.get("tees", {}).get("male", [])
     if not tees:
         tees = data.get("tees", {}).get("female", [])
