@@ -112,7 +112,7 @@ export default function Dashboard() {
                 >
                   <td style={{ padding: '12px 16px', fontWeight: 500 }}>{r.course_name}</td>
                   <td style={{ padding: '12px 16px', color: '#888' }}>
-                    {new Date(r.played_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {new Date(r.played_at + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </td>
                   <td style={{ padding: '12px 16px', textAlign: 'center' }}>{r.gross_score}</td>
                   <td style={{ padding: '12px 16px', textAlign: 'center' }}>
