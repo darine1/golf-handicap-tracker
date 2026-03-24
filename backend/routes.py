@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
+from uuid import UUID
 import models, schemas, handicap
 import httpx
 import os
@@ -155,3 +156,12 @@ def get_handicap(db: Session = Depends(get_db)):
         "rounds_until_handicap": rounds_needed,
         "message": f"Need {rounds_needed} more rounds" if rounds_needed > 0 else "Handicap active"
     }
+
+@router.delete("/rounds/{round_id}")
+def delete_round(round_id: UUID, db: Session = Depends(get_db)):
+    round = db.query(models.Round).filter(models.Round.id == round_id).first()
+    if not round:
+        raise HTTPException(status_code=404, detail="Round not found")
+    db.delete(round)
+    db.commit()
+    return {"deleted": True}

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 
+const API = import.meta.env.VITE_API_URL
+
 export default function Dashboard() {
   const [handicap, setHandicap] = useState(null)
   const [rounds, setRounds] = useState([])
@@ -16,6 +18,17 @@ export default function Dashboard() {
       setLoading(false)
     })
   }, [])
+
+  async function deleteRound(id) {
+    if (!confirm('Delete this round?')) return
+    await fetch(`${API}/rounds/${id}`, { method: 'DELETE'})
+    const [handicapData, roundsData] = await Promise.all([
+      fetch(`${API}/handicap`).then(r => r.json()),
+      fetch(`${API}/rounds`).then(r => r.json())
+    ])
+    setHandicap(handicapData)
+    setRounds(roundsData)
+  }
 
   if (loading) return <p style={{ color: '#888' }}>Loading...</p>
 
@@ -102,6 +115,7 @@ export default function Dashboard() {
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 500 }}>Date</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 500 }}>Gross</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 500 }}>Differential</th>
+                <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 500 }}>Delete</th>
               </tr>
             </thead>
             <tbody>
@@ -126,6 +140,22 @@ export default function Dashboard() {
                     }}>
                       {r.score_differential}
                     </span>
+                  </td>
+                  <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                    <button
+                      onClick={() => deleteRound(r.id)}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid #eee',
+                        borderRadius: 6,
+                        padding: '4px 10px',
+                        fontSize: 12,
+                        color: '#A32D2D',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
