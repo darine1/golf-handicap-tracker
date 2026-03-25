@@ -114,7 +114,12 @@ export default function NewRound() {
         course_id: savedCourse.id,
         played_at: playedAt,
         gross_score: total,
-        notes
+        notes,
+        hole_scores: scores.map((strokes, i) => ({
+          hole_number: i + 1,
+          strokes: parseInt(strokes),
+          par: pars[i]
+        }))
       })
     })
 

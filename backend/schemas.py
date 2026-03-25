@@ -37,3 +37,15 @@ class RoundOut(BaseModel):
     notes: str = None
 
     model_config = {"from attributes": True}
+
+class HoleScoreCreate(BaseModel):
+    hole_number: int
+    strokes: int
+    par: int
+
+class RoundCreate(BaseModel):
+    course_id: UUID
+    played_at: date
+    gross_score: int
+    notes: str = None
+    hole_scores: list[HoleScoreCreate] = None

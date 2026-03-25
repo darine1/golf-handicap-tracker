@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from database import get_db
 from uuid import UUID
+from typing import List
 import models, schemas, handicap
 import httpx
 import os
@@ -79,6 +81,10 @@ def get_courses(db: Session = Depends(get_db)):
     return db.query(models.Course).all()
 
 # --- Round Routes ---
+class HoleScoreIn(BaseModel):
+    hole_number: int
+    strokes: int
+    par: int
 
 @router.post("/rounds")
 def add_round(round_in: schemas.RoundCreate, db: Session = Depends(get_db)):
@@ -88,10 +94,26 @@ def add_round(round_in: schemas.RoundCreate, db: Session = Depends(get_db)):
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     
-    db_round = models.Round(**round_in.model_dump())
+    db_round = models.Round(
+        course_id=round_in.course_id,
+        played_at=round_in.played_at,
+        gross_score=round_in.gross_score,
+        notes=round_in.notes
+    )
     db.add(db_round)
     db.commit()
     db.refresh(db_round)
+
+    if round_in.hole_scores:
+        for hs in round_in.hole_scores:
+            db_hole = models.HoleScore(
+                round_id=db_round.id,
+                hole_number=hs.hole_number,
+                strokes=hs.strokes,
+                par=hs.par
+            )
+            db.add(db_hole)
+        db.commit()
 
     all_rounds = db.query(models.Round).all()
     differentials = []
@@ -165,3 +187,69 @@ def delete_round(round_id: UUID, db: Session = Depends(get_db)):
     db.delete(round)
     db.commit()
     return {"deleted": True}
+
+@router.get("/stats")
+def get_stats(db: Session = Depends(get_db)):
+    all_rounds = db.query(models.Round).all()
+    if not all_rounds:
+        return {"message": "No rounds yet"}
+    
+    # Gross score stats
+    gross_scores = [r.gross_score for r in all_rounds]
+    differentials = []
+    course_counts = {}
+    for r in all_rounds:
+        c = db.query(models.Course).filter(models.Course.id == r.course_id).first()
+        diff = handicap.calculate_score_differential(
+            r.gross_score, c.course_rating, c.course_rating
+        )
+
+        differentials.append(diff)
+        course_name = c.name
+        course_counts[course_name] = course_counts.get(course_name, 0) + 1
+
+        best_round = db.query(models.Round).order_by(models.Round.gross_score.asc()).first()
+        worst_round = db.query(models.Round).order_by(models.Round.gross_score.desc()).first()
+        best_course = db.query(models.Course).filter(models.Course.id == best_round.course_id).first()
+        worst_course = db.query(models.Course).filter(models.Course.id == worst_round.course_id).first()
+
+        # Hole stats
+        all_hole_scores = db.query(models.HoleScore).all()
+        hole_stats = None
+
+        if all_hole_scores:
+            rounds_with_holes = len(set(hs.round_id for hs in all_hole_scores))
+            eagles = sum(1 for hs in all_hole_scores if hs.strokes <= hs.par - 2)
+            birdies = sum(1 for hs in all_hole_scores if hs.strokes == hs.par - 1)
+            pars = sum(1 for hs in all_hole_scores if hs.strokes == hs.par)
+            bogeys = sum(1 for hs in all_hole_scores if hs.strokes == hs.par + 1)
+            doubles = sum(1 for hs in all_hole_scores if hs.strokes == hs.par + 2)
+            triples_plus = sum(1 for hs in all_hole_scores if hs.strokes >= hs.par + 3)
+
+            hole_stats = {
+                "rounds_with_hole_data": rounds_with_holes,
+                "avg_eagles_per_round": round(eagles / rounds_with_holes, 2),
+                "avg_birdies_per_round": round(birdies / rounds_with_holes, 2),
+                "avg_pars_per_round": round(pars / rounds_with_holes, 2),
+                "avg_bogeys_per_round": round(bogeys / rounds_with_holes, 2),
+                "avg_doubles_per_round": round(doubles / rounds_with_holes, 2),
+                "avg_triples_plus_per_round": round(triples_plus / rounds_with_holes, 2),
+            }
+
+        return {
+            "total_rounds": len(all_rounds),
+            "scoring_average": round(sum(gross_scores) / len(gross_scores), 1),
+            "best_round": {
+                "score": best_round.gross_score,
+                "course": best_course.name,
+                "date": best_round.played_at
+            },
+            "worst_round": {
+                "score": worst_round.gross_score,
+                "course": worst_course.name,
+                "date": worst_round.played_at
+            },
+            "avg_differential": round(sum(differentials) / len(differentials), 1),
+            "rounds_per_course": course_counts,
+            "hole_stats": hole_stats
+        }
