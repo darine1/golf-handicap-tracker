@@ -184,6 +184,7 @@ def delete_round(round_id: UUID, db: Session = Depends(get_db)):
     round = db.query(models.Round).filter(models.Round.id == round_id).first()
     if not round:
         raise HTTPException(status_code=404, detail="Round not found")
+    db.query(models.HoleScore).filter(models.HoleScore.round_id == round_id).delete()
     db.delete(round)
     db.commit()
     return {"deleted": True}
